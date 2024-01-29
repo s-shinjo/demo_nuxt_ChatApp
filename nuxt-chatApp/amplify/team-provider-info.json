@@ -1,0 +1,23 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-nuxtchatapp-dev-152757-authRole",
+      "UnauthRoleArn": "arn:aws:iam::533267181612:role/amplify-nuxtchatapp-dev-152757-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::533267181612:role/amplify-nuxtchatapp-dev-152757-authRole",
+      "Region": "ap-northeast-1",
+      "DeploymentBucketName": "amplify-nuxtchatapp-dev-152757-deployment",
+      "UnauthRoleName": "amplify-nuxtchatapp-dev-152757-unauthRole",
+      "StackName": "amplify-nuxtchatapp-dev-152757",
+      "StackId": "arn:aws:cloudformation:ap-northeast-1:533267181612:stack/amplify-nuxtchatapp-dev-152757/6741b820-aaca-11ee-b6a5-0e9630bea38d",
+      "AmplifyAppId": "d2c4iaufclk5p2"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d2c4iaufclk5p2",
+          "type": "manual"
+        }
+      }
+    }
+  }
+}
