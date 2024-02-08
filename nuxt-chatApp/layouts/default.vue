@@ -66,6 +66,11 @@ export default {
           title: 'ChatApp',
           to: '/chatapp',
         },
+        {
+          icon: 'mdi-robot',
+          title: 'AssistantApp',
+          to: '/assistantApp',
+        },
       ],
       title: 'Vuetify.js',
     }
