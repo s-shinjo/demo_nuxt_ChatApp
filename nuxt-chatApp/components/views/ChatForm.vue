@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    ChatForm<v-icon>mdi-apps</v-icon>
     <v-container v-show="!isShowChat">
       <!-- スタートコンポーネント -->
       <StartScreen :start-chat="startChat" />
