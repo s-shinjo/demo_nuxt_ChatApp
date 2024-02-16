@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    AssistantForm!<v-icon color="line-green">mdi-robot</v-icon>
+    AssistantForm<v-icon color="line-green">mdi-robot</v-icon>
     <v-container v-show="!isShowChat">
       <!-- スタートコンポーネント -->
       <StartScreen :start-chat="startChat" />
@@ -10,9 +10,12 @@
       <!-- チャットメッセージ -->
       <ChatMessage :messages="messages" />
 
+      <!-- プログレスバー -->
+      <ProgressMessage :is-sending-message="isSendingMessage" />
+
       <!-- 余白 -->
       <v-row>
-        <v-col class="mb-10">
+        <v-col class="mb-15">
         </v-col>
       </v-row>
 
@@ -25,6 +28,7 @@
 <script>
 import StartScreen from "@/components/templates/StartScreen.vue";
 import ChatMessage from "@/components/templates/ChatMessage.vue";
+import ProgressMessage from "@/components/templates/ProgressMessage.vue";
 import ChatInputs from "@/components/templates/ChatInputs.vue";
 
 // APIエンドポイントから非同期でJSONデータを取得する
@@ -49,12 +53,14 @@ export default {
   components: {
     StartScreen,
     ChatMessage,
+    ProgressMessage,
     ChatInputs,
   },
 
   data() {
     return {
       isShowChat: false,
+      isSendingMessage: false, // true時、プログレスバーを表示
       messages: [],
       newMyMessage: '',
     };
@@ -84,57 +90,55 @@ export default {
         const apiEndpoint = 'https://api.openai.com/v1/threads';
         let requestBody;
 
-        // // 0.これでアシスタント作成できる
-        // requestBody = JSON.stringify({
-        //   instructions: "平和な人です",
-        //   name: "テスト",
-        //   tools: [{ type: "code_interpreter" }],
-        //   "model": "gpt-3.5-turbo",
-        // });
-        // const assistant = await fetchJsonFromAPI(apiKey, 'https://api.openai.com/v1/assistants', 'POST', requestBody);
-        // console.log('assistant', assistant);
+        // 問い合わせ内容を表示
+        const myMessage = this.newMyMessage;
+        this.messages.push({ who: "Me", msg: myMessage });
+        this.newMyMessage = ''; // 連投防止のためここで空にしておく
+        this.isSendingMessage = true; // プログレスバー：ON
 
-        // 1.スレッドを作成
+        // スレッドを作成
         const emptyThread = await fetchJsonFromAPI(apiKey, apiEndpoint, 'POST');
         const threadId = emptyThread.id;
         console.log('thread.id:', threadId);
 
-        // // 2.スレッドにメッセージを作成
-        requestBody = JSON.stringify({ role: 'user', content: this.newMyMessage });
+        // スレッドにメッセージを作成
+        requestBody = JSON.stringify({ role: 'user', content: myMessage });
         const threadMessages = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/messages`, 'POST', requestBody);
         console.log('threadMessages.id:', threadMessages.id);
 
-        this.messages.push({ who: "Me", msg: this.newMyMessage });
-        this.newMyMessage = '';
-
-        // 3.（作成済みの）アシスタントを使用しスレッドを実行
+        // （Playgroundで作成済みの）アシスタントを使用しスレッドを実行
         requestBody = JSON.stringify({ 'assistant_id': assistantId });
         const run = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/runs`, 'POST', requestBody);
         console.log('run.id:', run.id);
 
-        // 4.ステータスがcompletedになるまで待機
+        // ステータスがcompletedになるまで待機
         let isCompleted = false;
         while (!isCompleted) {
           const runRetrieve = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/runs/${run.id}`, 'GET');
           isCompleted = (runRetrieve.status === 'completed');
           if (!isCompleted) {
             // 1秒間待機
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ミリ秒 = 1秒
             console.log('wait');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ミリ秒 = 1秒
           }
         }
 
-        // 5.メッセージを取得
+        // メッセージを取得
         const getMessages = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/messages`, 'GET');
         const newGptMessage = getMessages.data[0].content[0].text.value;
-        console.log('getMessagesInfo:', getMessages);
         console.log('newGptMessage:', newGptMessage);
-        
 
+        // レスポンス内容を表示
         this.messages.push({ who: "Gpt", msg: newGptMessage });
+        this.isSendingMessage = false; // プログレスバー：OFF
 
+        // 一番下までスクロール
+        window.scrollTo(0, document.body.scrollHeight);
       } catch (error) {
         console.error("Error sending message:", error);
+      } finally {
+        // 念のためfinally
+        this.isSendingMessage = false;
       }
     },
   },
