@@ -11,7 +11,7 @@
           </v-card-title>
           <v-card-text class="primary--text" align="center">
             <v-progress-linear indeterminate></v-progress-linear>
-            <span>&nbsp;now Loading…</span>
+            <span>&nbsp;now Loading…{{ countDown }}</span>
           </v-card-text>
         </v-card>
       </v-col>
@@ -23,11 +23,27 @@
 export default {
   props: {
     isSendingMessage: Boolean,
+    waitingTime: Number,
   },
   data() {
     return {
       loadingCardTop: '0px',
+      countDown: 0,
     };
+  },
+  methods: {
+    startCountDown() {
+      // 初期値セット
+      this.countDown = this.waitingTime;
+
+      const timer = setInterval(() => {
+        this.countDown--;
+        if (this.countDown < 0) {
+          clearInterval(timer);  // タイマー停止
+          this.startCountDown(); // カウントダウンをリセットし再度開始
+        }
+      }, 1000); // 1秒ごとにカウントダウンを更新
+    }
   },
   watch: {
     isSendingMessage: {
@@ -40,10 +56,12 @@ export default {
 
           // 要素の位置情報を取得
           const rect = maxIndexElement.getBoundingClientRect();
-          console.log('要素の高さ:', rect.height);
 
           // 表示位置を動的に指定
           this.loadingCardTop = `-${rect.height + 24}px`;
+
+          // カウントダウンを開始
+          this.startCountDown();
         }
       }
     }
