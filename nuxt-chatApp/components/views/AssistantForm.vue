@@ -11,7 +11,7 @@
       <ChatMessage :messages="messages" />
 
       <!-- プログレスバー -->
-      <ProgressMessage :is-sending-message="isSendingMessage" />
+      <ProgressMessage :is-sending-message="isSendingMessage" :waitingTime="waitingTime" />
 
       <!-- 余白 -->
       <v-row>
@@ -61,6 +61,7 @@ export default {
     return {
       isShowChat: false,
       isSendingMessage: false, // true時、プログレスバーを表示
+      waitingTime: 5, // 単位：秒
       messages: [],
       newMyMessage: '',
     };
@@ -109,24 +110,39 @@ export default {
         // （Playgroundで作成済みの）アシスタントを使用しスレッドを実行
         requestBody = JSON.stringify({ 'assistant_id': assistantId });
         const run = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/runs`, 'POST', requestBody);
+        console.log('assistantId:', assistantId);
         console.log('run.id:', run.id);
 
-        // ステータスがcompletedになるまで待機
-        let isCompleted = false;
-        while (!isCompleted) {
+        // ステータスがcompleted or failedになるまで待機
+        let isLoop = true;
+        while (isLoop) {
           const runRetrieve = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/runs/${run.id}`, 'GET');
-          isCompleted = (runRetrieve.status === 'completed');
-          if (!isCompleted) {
-            // 1秒間待機
-            console.log('wait');
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ミリ秒 = 1秒
+          console.log('status:' + runRetrieve.status);
+          switch (runRetrieve.status) {
+            case 'completed':
+              isLoop = false;
+              break;
+            case 'failed':
+              console.log('status last_error:', JSON.stringify(runRetrieve.last_error));
+              isLoop = false;
+              break;
+            default:
+              // N秒間待機
+              await new Promise(resolve => setTimeout(resolve, this.waitingTime * 1000)); // 1000ミリ秒 = 1秒
+              break;
           }
         }
 
         // メッセージを取得
         const getMessages = await fetchJsonFromAPI(apiKey, apiEndpoint + `/${threadId}/messages`, 'GET');
-        const newGptMessage = getMessages.data[0].content[0].text.value;
-        console.log('newGptMessage:', newGptMessage);
+        let newGptMessage = getMessages.data[0].content[0].text.value;
+        
+        // 末尾に【N†source】があれば削除
+        const index = newGptMessage.indexOf('【');
+        if (index !== -1) {
+          newGptMessage = newGptMessage.substring(0, index);
+        }
+        console.log(newGptMessage);
 
         // レスポンス内容を表示
         this.messages.push({ who: "Gpt", msg: newGptMessage });
